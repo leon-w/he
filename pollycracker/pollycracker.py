@@ -67,7 +67,7 @@ class PCCyphertextBase(abc.ABC):
 
     def check_valid(self):
         if self.get_r() >= self.key:
-            print(f'{Fore.YELLOW}WARNING: noise term ({self.get_r()}) is larger than the key ({self.key}){Style.RESET_ALL}')
+            print(f'{Fore.YELLOW}WARNING: noise term ({self.get_r()}) is larger than the key ({self.key}), decryption is no longer valid{Style.RESET_ALL}')
 
     def __add__(self, other):
         return PCCyphertextAddition(self, other)
@@ -183,7 +183,7 @@ class PCCyphertextMultiplication(PCCyphertextBase):
         r2 = self.c2.get_r()
         m1 = self.c1.get_m()
         m2 = self.c2.get_m()
-        return 2*(2*(r1+r2) + r1*m2 + r2*m1)
+        return 2*(2*r1*r2 + r1*m2 + r2*m1)
 
     def get_m(self):
         return self.c1.get_m() * self.c2.get_m()
