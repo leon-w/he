@@ -5,12 +5,25 @@ import random
 from colorama import Fore, Style
 from Crypto.Util import number
 
+_verbose = False
+
+
+def set_verbose(val):
+    """enable/disable verbose output"""
+    global _verbose
+    _verbose = bool(val)
+
 
 def COL(s, color):
     return f'{color}{s}{Fore.WHITE}'
 
 
 class Key:
+    """
+    Wrapper class for the key (a single prime number).
+    Intended to support pretty console output of the key.
+    """
+
     def __init__(self, bits):
         self.key = number.getPrime(bits)
 
@@ -19,23 +32,53 @@ class Key:
         return self
 
     def __call__(self):
+        """Get the actual integer value of the key"""
         return self.key
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f'{Style.BRIGHT}{COL("p", Fore.YELLOW)} = {self.key}{Style.RESET_ALL}'
 
 
+class PCCyphertextList(list):
+    """
+    A list type to hold multiple encrypted bits.
+    Supports vectorized decryption via the `.decrypt()` method.
+    """
+
+    def decrypt(self):
+        return list(map(lambda c: c.decrypt(), self))
+
+
+def PCCircuit(func):
+    """
+    Decorator that ensures that a function returning a `tuple`/`list` of cypertexts
+    will actually return a `PCCyphertextList` instead.
+    """
+    def wrap(*args, **kwargs):
+        r = func(*args, **kwargs)
+        if isinstance(r, (tuple, list)) and all(map(lambda x: isinstance(x, PCCyphertextBase), r)):
+            return PCCyphertextList(r)
+        return r
+
+    return wrap
+
+
 class PCCyphertextBase(abc.ABC):
+    """
+    Abstract base class for all cyphertext objects.
+    The objects hold the key needed for decryption.
+    """
+
     def __init__(self, key):
         super().__init__()
         self.key = key
 
     @abc.abstractmethod
-    def get_r(self):
+    def _get_m(self):
         pass
 
     @abc.abstractmethod
-    def get_m(self):
+    def _get_r(self):
         pass
 
     @abc.abstractmethod
@@ -52,11 +95,12 @@ class PCCyphertextBase(abc.ABC):
 
     @abc.abstractmethod
     def __call__(self):
+        """Get the actual integer value of the cyphertext"""
         pass
 
     def decrypt(self):
         return (self() % self.key) % 2
-    
+
     def decrypt_repr(self):
         s = f'{Style.BRIGHT}D(C({COL(self._get_m_repr(), Fore.GREEN)})) = ' \
             f'{self()} ' \
@@ -66,8 +110,18 @@ class PCCyphertextBase(abc.ABC):
         return s
 
     def check_valid(self):
-        if self.get_r() >= self.key:
-            print(f'{Fore.YELLOW}WARNING: noise term ({self.get_r()}) is larger than the key ({self.key}), decryption is no longer valid{Style.RESET_ALL}')
+        if self._get_r() >= self.key:
+            print(f'{Fore.YELLOW}WARNING: noise term ({self._get_r()}) is larger than the key ({self.key}), decryption is no longer valid{Style.RESET_ALL}')
+
+    def __repr__(self):
+        if _verbose:
+            return f'{Style.BRIGHT}C({COL(self._get_m_repr(), Fore.GREEN)}) = ' \
+                   f'{COL(self._get_m_repr(), Fore.GREEN)} + ' \
+                   f'2⋅{COL(self._get_r_repr(), Fore.RED)} + ' \
+                   f'{COL(self._get_q_repr(), Fore.BLUE)}⋅{COL(self.key, Fore.YELLOW)} = ' \
+                   f'{self()}{Style.RESET_ALL}'
+        else:
+            return f'{Style.BRIGHT}{self()}{Style.RESET_ALL}'
 
     def __add__(self, other):
         return PCCyphertextAddition(self, other)
@@ -75,20 +129,17 @@ class PCCyphertextBase(abc.ABC):
     def __mul__(self, other):
         return PCCyphertextMultiplication(self, other)
 
-    def __repr__(self):
-        s = f'{Style.BRIGHT}C({COL(self._get_m_repr(), Fore.GREEN)}) = ' \
-            f'{COL(self._get_m_repr(), Fore.GREEN)} + ' \
-            f'2⋅{COL(self._get_r_repr(), Fore.RED)} + ' \
-            f'{COL(self._get_q_repr(), Fore.BLUE)}⋅{COL(self.key, Fore.YELLOW)} = ' \
-            f'{self()}{Style.RESET_ALL}'
-        return s
-
 
 class PCCyphertext(PCCyphertextBase):
+    """
+    Cyphertext of a single encrypted bit without any computations applied to it.
+    """
 
-    def __init__(self, bit, key, r=None, q=None):
-        assert bit in [0, 1]
+    def __init__(self, m, key, r=None, q=None):
+        assert m in [0, 1], f'`{m}` is not a bit'
         super().__init__(key)
+
+        # random values, domains might not be optimal
         if r is None:
             r = random.randint(2, math.ceil(math.log(self.key)))  # noise
         if q is None:
@@ -96,12 +147,18 @@ class PCCyphertext(PCCyphertextBase):
 
         self.r = r
         self.q = q
-        self.bit = bit
+        self.m = m
 
         self.check_valid()
 
+    def _get_m(self):
+        return self.m
+
+    def _get_r(self):
+        return 2*self.r
+
     def _get_m_repr(self):
-        return str(self.bit)
+        return str(self.m)
 
     def _get_r_repr(self):
         return str(self.r)
@@ -110,23 +167,28 @@ class PCCyphertext(PCCyphertextBase):
         return str(self.q)
 
     def __call__(self):
-        return self.bit + 2*self.r + self.q*self.key
-
-    def get_r(self):
-        return 2*self.r
-
-    def get_m(self):
-        return self.bit
+        return self.m + 2*self.r + self.q*self.key
 
 
 class PCCyphertextAddition(PCCyphertextBase):
+    """
+    Addition of two cyphertexts
+    """
+
     def __init__(self, c1, c2):
         assert c1.key == c2.key
         super().__init__(c1.key)
+
         self.c1 = c1
         self.c2 = c2
 
         self.check_valid()
+
+    def _get_m(self):
+        return self.c1._get_m() + self.c2._get_m()
+
+    def _get_r(self):
+        return 2*(self.c1._get_r() + self.c2._get_r())
 
     def _get_m_repr(self):
         return f'({self.c1._get_m_repr()} + {self.c2._get_m_repr()})'
@@ -139,12 +201,6 @@ class PCCyphertextAddition(PCCyphertextBase):
 
     def __call__(self):
         return self.c1() + self.c2()
-
-    def get_r(self):
-        return 2*(self.c1.get_r() + self.c2.get_r())
-
-    def get_m(self):
-        return self.c1.get_m() + self.c2.get_m()
 
 
 class PCCyphertextMultiplication(PCCyphertextBase):
@@ -178,12 +234,12 @@ class PCCyphertextMultiplication(PCCyphertextBase):
     def __call__(self):
         return self.c1() * self.c2()
 
-    def get_r(self):
-        r1 = self.c1.get_r()
-        r2 = self.c2.get_r()
-        m1 = self.c1.get_m()
-        m2 = self.c2.get_m()
+    def _get_r(self):
+        r1 = self.c1._get_r()
+        r2 = self.c2._get_r()
+        m1 = self.c1._get_m()
+        m2 = self.c2._get_m()
         return 2*(2*r1*r2 + r1*m2 + r2*m1)
 
-    def get_m(self):
-        return self.c1.get_m() * self.c2.get_m()
+    def _get_m(self):
+        return self.c1._get_m() * self.c2._get_m()

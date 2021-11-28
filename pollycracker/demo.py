@@ -1,24 +1,49 @@
 from colorama import Fore, Style
 
-import pollycracker
+from pollycracker import (Key, PCCyphertext, PCCyphertextBase,
+                          PCCyphertextList, set_verbose)
 
-key = pollycracker.Key(10)
+key = Key(10)
+
+verbose_activated = False
+set_verbose(verbose_activated)
 
 
-def encrypt(bit):
-    return pollycracker.PCCyphertext(bit, key())
+def verbose(val=None):
+    """toggle verbose output"""
+    global verbose_activated
+    if val is None:
+        verbose_activated = not verbose_activated
+    else:
+        verbose_activated = bool(val)
+
+    set_verbose(verbose_activated)
+
+    if verbose_activated:
+        print('Verbose mode is now on.')
+    else:
+        print('Verbose mode is now disabled.')
+
+
+def encrypt(*bits):
+    if len(bits) > 1:
+        return PCCyphertextList(map(lambda b: PCCyphertext(b, key()), bits))
+    return PCCyphertext(bits[0], key())
 
 
 def decrypt(c):
-    print(c.decrypt_repr())
+    if verbose_activated and isinstance(c, PCCyphertextBase):
+        print(c.decrypt_repr())
+    return c.decrypt()
 
 
 def help():
     help_text = f"""{Fore.LIGHTYELLOW_EX}Help:
+'verbose()'     : toggle verbose mode
 'key'           : view the current key
 'key.new(nbits)': generate a new key to replace the old one
-'encrypt(bit)'  : encrypt a bit using the current key
-'decrypt(c)'    : decrypt an encrypted bit
+'encrypt(bits)' : encrypt one or more bits using the current key
+'decrypt(c)'    : decrypt an encrypted bit or list of bits
 'c1+c2 / c1*c2' : add/multiply bits{Style.RESET_ALL}"""
     print(help_text)
 
@@ -39,8 +64,9 @@ Type 'help()' for help."""
                                      'key': key,
                                      'encrypt': encrypt,
                                      'decrypt': decrypt,
-                                     })
-    shell.interact(banner=prompt, exitmsg='exiting PollyCracker interactive demo...')
+                                     'verbose': verbose
+                                     }, filename='<PollyCracker Interactive Console>')
+    shell.interact(banner=prompt, exitmsg='exiting PollyCracker Interactive Console...')
 
 
 if __name__ == '__main__':
