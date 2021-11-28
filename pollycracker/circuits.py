@@ -17,11 +17,11 @@ def two_bit_adder(one, a0, a1, b0, b1):
     t2 = a1 * b1
     t3 = t0 * t1
 
-    o0 = a0 + b0
-    o1 = t0 + t1
-    o2 = or_gate(one, t2, t3)
+    r0 = a0 + b0
+    r1 = t0 + t1
+    c0 = or_gate(one, t2, t3)
 
-    return o2, o1, o0
+    return r0, r1, c0
 
 
 class Bit:
