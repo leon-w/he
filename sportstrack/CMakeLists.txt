@@ -6,9 +6,9 @@ find_package(SEAL REQUIRED)
 
 if(APPLE)
     link_directories(/usr/local/lib)
-    link_libraries(libhttpserver.dylib libcurlpp.dylib curl jsoncpp)
+    link_libraries(libhttpserver.dylib libcurlpp.dylib curl jsoncpp sqlite3)
 else()
-    link_libraries(libhttpserver libcurlpp curl jsoncpp)
+    link_libraries(libhttpserver libcurlpp curl jsoncpp sqlite3)
 endif()
 
 if(TARGET SEAL::seal)
@@ -20,4 +20,4 @@ else()
 endif()
 
 add_executable(client client.cpp)
-add_executable(server server.cpp)
+add_executable(server server.cpp Database.cpp)

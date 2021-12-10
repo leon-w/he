@@ -3,3 +3,4 @@
  * `libhttpserver`
  * `curlpp`
  * `jsoncpp`
+ * `sqlite3`

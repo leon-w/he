@@ -6,11 +6,11 @@
 
 
 inline seal::EncryptionParameters
-get_encryption_params(std::size_t poly_modulus_degree = 4096, std::size_t plain_modulus = 1024) {
+get_encryption_params(std::size_t poly_modulus_degree = 8192) {
     seal::EncryptionParameters params(seal::scheme_type::bfv);
     params.set_poly_modulus_degree(poly_modulus_degree);
     params.set_coeff_modulus(seal::CoeffModulus::BFVDefault(poly_modulus_degree));
-    params.set_plain_modulus(plain_modulus);
+    params.set_plain_modulus(seal::PlainModulus::Batching(poly_modulus_degree, 20));
     return params;
 }
 

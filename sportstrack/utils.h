@@ -6,16 +6,7 @@
 
 #include <seal/seal.h>
 
-#include <curlpp/cURLpp.hpp>
-#include <curlpp/Easy.hpp>
-#include <curlpp/Options.hpp>
-#include <curlpp/Exception.hpp>
-
 #include <json/json.h>
-
-inline std::string uint64_to_hex(std::uint64_t value) {
-    return seal::util::uint_to_hex_string(&value, std::size_t(1));
-}
 
 std::string sstream_to_hex(const std::stringstream &sstream) {
     std::stringstream result;
@@ -30,7 +21,7 @@ std::stringstream hex_to_sstream(const std::string &hex) {
     std::stringstream result;
     for (int i = 0; i < hex.length(); i += 2) {
         std::string byteString = hex.substr(i, 2);
-        result << (char) strtol(byteString.c_str(), NULL, 16);
+        result << (char) strtol(byteString.c_str(), nullptr, 16);
     }
     return result;
 }
@@ -42,26 +33,36 @@ Json::Value parse_json(std::istream &is) {
     JSONCPP_STRING errs;
     if (!parseFromStream(builder, is, &root, &errs)) {
         std::cerr << "FAILED TO PARSE JSON: " << errs << std::endl;
+        std::cerr << std::endl;
         exit(1);
     }
     return root;
 }
 
-Json::Value get_request(const std::string& url) {
-    try {
-        curlpp::Cleanup cleaner;
-        curlpp::Easy request;
+inline Json::Value parse_json(const std::string &str) {
+    std::stringstream ss(str);
+    return parse_json(ss);
+}
 
-        request.setOpt(new curlpp::options::Url(url));
+inline std::string stringify_json(Json::Value &json) {
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "";
+    return Json::writeString(builder, json);
+}
 
-        std::stringstream ss;
-        ss << request;
-        return parse_json(ss);
-    }
-    catch (const std::exception &e) {
-        Json::Value root;
-        root["success"] = false;
-        root["error"] = e.what();
-        return root;
+
+int read_int(std::string prompt, int min = 0, int max = 5) {
+    while (true) {
+        int result;
+        std::string in;
+        std::cout << prompt << " (" << min << "-" << max << ") > ";
+        std::cin >> result;
+        if (!std::cin.fail() && result >= min && result <= max) {
+            return result;
+        } else {
+            std::cout << "Invalid value!" << std::endl;
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
     }
 }
