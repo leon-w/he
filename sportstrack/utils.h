@@ -4,7 +4,7 @@
 #include <sstream>
 #include <iomanip>
 
-#include <seal/seal.h>
+#include "seal/seal.h"
 
 #include <json/json.h>
 

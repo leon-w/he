@@ -1,6 +1,6 @@
 #pragma once
 
-#include <seal/seal.h>
+#include "seal/seal.h"
 #include <vector>
 #include <string>
 #include <sstream>
