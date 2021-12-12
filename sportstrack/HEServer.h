@@ -9,7 +9,7 @@
 
 class HEServer {
 public:
-    explicit HEServer(const seal::EncryptionParameters &params) : context(params), evaluator(context) {}
+    explicit HEServer(const seal::EncryptionParameters &params) : params(params), context(params), evaluator(context) {}
 
     static std::string serialize_ciphertext(const seal::Ciphertext &ciphertext) {
         std::stringstream ss;
@@ -30,7 +30,6 @@ public:
         return result;
     }
 
-private:
     seal::EncryptionParameters params;
     seal::SEALContext context;
     seal::Evaluator evaluator;
