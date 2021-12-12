@@ -94,7 +94,7 @@ void Database::write_repetitions_sum(const std::string &hex_encoded, bool first_
 Json::Value Database::get_repetitions(bool truncate) {
     std::stringstream ss;
     if (truncate) {
-        ss << R"(SELECT "[" || LENGTH(CIPHERTEXT) || " B] " || SUBSTR(CIPHERTEXT, 1, 32) || "..." as CIPHERTEXT,)";
+        ss << R"(SELECT "[" || LENGTH(CIPHERTEXT) || " B] " || SUBSTR(CIPHERTEXT, 1, 52) || "..." as CIPHERTEXT,)";
         ss << "TIMESTAMP FROM REPETITIONS;";
     } else {
         ss << "SELECT CIPHERTEXT, TIMESTAMP FROM REPETITIONS;";
@@ -106,11 +106,17 @@ Json::Value Database::get_repetitions(bool truncate) {
 std::string Database::get_repetitions_sum(bool truncate) {
     std::string query;
     if (truncate) {
-        query = R"(SELECT "[" || LENGTH(CIPHERTEXT) || " B] " || SUBSTR(CIPHERTEXT, 1, 32) || "..." as CIPHERTEXT FROM REPETITIONS_SUM;)";;
+        query = R"(SELECT "[" || LENGTH(CIPHERTEXT) || " B] " || SUBSTR(CIPHERTEXT, 1, 52) || "..." as CIPHERTEXT FROM REPETITIONS_SUM;)";;
     } else {
         query = "SELECT CIPHERTEXT FROM REPETITIONS_SUM;";
     }
 
     Json::Value result = execute_sql_json(db, query.c_str());
     return result["CIPHERTEXT"][0].asString();
+}
+
+void Database::clear_database() {
+    std::string query = "DELETE from REPETITIONS;\n"
+                        "DELETE from REPETITIONS_SUM;";
+    execute_sql(db, query.c_str());
 }

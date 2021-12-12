@@ -36,14 +36,14 @@ void get_repetitions_sum_from_server(const string &url, HEClient &client) {
         exit(1);
     }
 
-    Ciphertext encrypted_sum_vec = client.parse_ciphertext(sum_json["ciphertext"].asString());
+    Ciphertext encrypted_sum_vec = client.parse_ciphertext(sum_json["sum_ciphertext"].asString());
     vector<uint64_t> sum_vec_decoded = client.decrypt(encrypted_sum_vec);
 
     cout << "Your total exercise count:" << endl;
     for (int i = 0; i < exercises.size(); i++) {
         cout << " " << i + 1 << ". " << exercises[i] << ": " << sum_vec_decoded[i] << endl;
     }
-    cout << "--------------------------" << endl;
+    cout << "----------------------------" << endl;
 }
 
 void push_repetitions_to_server(const string &url, const Ciphertext &encrypted_repetitions_vec) {

@@ -20,6 +20,7 @@ public:
 
     void write_repetitions_sum(const std::string &hex_encoded, bool first_commit);
 
+    void clear_database();
 private:
     sqlite3 *db{};
 };

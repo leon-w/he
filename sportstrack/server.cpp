@@ -28,6 +28,17 @@ public:
     }
 };
 
+class clear_db_resource : public http_resource {
+public:
+    const shared_ptr<http_response> render(const http_request &) override {
+        db.clear_database();
+        Json::Value responseJson;
+        responseJson["success"] = true;
+        return JSON_RESPONSE(responseJson);
+    }
+};
+
+
 class get_database_dump_resource : public http_resource {
 public:
     const shared_ptr<http_response> render(const http_request &) override {
@@ -36,7 +47,9 @@ public:
         responseJson["success"] = true;
         responseJson["database"]["repetitions"] = db.get_repetitions(true);
         responseJson["database"]["repetitions_sum"] = db.get_repetitions_sum(true);
-        return JSON_RESPONSE(responseJson);
+        auto response = JSON_RESPONSE(responseJson);
+        response->with_header("Access-Control-Allow-Origin", "*");
+        return response;
     }
 };
 
@@ -45,7 +58,7 @@ public:
     const shared_ptr<http_response> render(const http_request &) override {
         Json::Value responseJson;
         responseJson["success"] = true;
-        responseJson["ciphertext"] = db.get_repetitions_sum();
+        responseJson["sum_ciphertext"] = db.get_repetitions_sum();
         return JSON_RESPONSE(responseJson);
     }
 };
@@ -96,6 +109,9 @@ int main() {
 
     get_database_dump_resource get_database_dump_resource;
     ws.register_resource("/api/get_database_dump", &get_database_dump_resource);
+
+    clear_db_resource clear_db_resource;
+    ws.register_resource("/api/clear_db", &clear_db_resource);
 
     ws.start(true);
     return 0;
