@@ -69,11 +69,19 @@ pair<int, int> prompt_exercise_count() {
     return {exercise, repetitions};
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     cout << "--- [SportsTrack CLIENT] ---" << endl;
 
+    string server;
+    if (argc == 1) {
+        server = "http://localhost:6501";
+    } else {
+        server = string("http://") + argv[1];
+    }
+
+
     // load the parameters from the server
-    EncryptionParameters params = load_params_from_server("http://localhost:8080/api/params");
+    EncryptionParameters params = load_params_from_server(server + "/api/params");
     HEClient client(params);
 
     while (true) {
@@ -84,10 +92,10 @@ int main() {
 
         Ciphertext encrypted_repetitions_vec = client.encrypted(repetitions_vec);
 
-        push_repetitions_to_server("http://localhost:8080/api/push_repetitions", encrypted_repetitions_vec);
+        push_repetitions_to_server(server + "/api/push_repetitions", encrypted_repetitions_vec);
 
         cout << endl;
-        get_repetitions_sum_from_server("http://localhost:8080/api/get_sum", client);
+        get_repetitions_sum_from_server(server + "/api/get_sum", client);
     }
 
     return 0;

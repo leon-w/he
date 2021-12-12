@@ -123,7 +123,7 @@ int main() {
     HEServer server(params);
     Database db("sportstrack.db");
 
-    webserver ws = create_webserver(8080);
+    webserver ws = create_webserver(6501);
 
     params_resource params_resource(&server);
     ws.register_resource("/api/params", &params_resource);
